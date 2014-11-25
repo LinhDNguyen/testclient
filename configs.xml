@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<configs>
+    <name>Test station 1</name>
+    <ip>10.207.215.45</ip>
+    <command_port>1111</command_port>
+    <terminal_port>1</terminal_port>
+    <compilers>
+        <compiler name='iar'>C:/iar</compiler>
+        <compiler name='uv4'>C:/uv4</compiler>
+        <compiler name='kds'>C:/kds</compiler>
+    </compilers>
+    <specific_config>
+    log: {type=ftp; uid=sdk; pwd=sdk12345;}
+    other: {test=test value1;}
+    </specific_config>
+</configs>
