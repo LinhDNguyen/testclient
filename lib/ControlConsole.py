@@ -8,9 +8,9 @@ from twisted.web import server
 from twisted.python import log
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-sys.path.append(os.path.join(BASE_DIR, '..'))
+sys.path.append(BASE_DIR)
 
-from lib.ProcessUtil import ProcessUtil
+from lib import ProcessUtil
 
 IDLE = 0
 BUSY = 1
