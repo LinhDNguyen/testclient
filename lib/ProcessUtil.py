@@ -44,27 +44,48 @@ class TimeoutThread(threading.Thread):
 class ProcessUtil(object):
     """Subprocess utility class"""
     @staticmethod
-    def run_job(cmd, timeout=60, is_shell=False):
+    def run_job(cmd, timeout=60, is_shell=False, output=None, error=None):
         """Run command cmd, if duration larger than 60 secs, kill it"""
         # Print cmd:
         # print "***************CMD*************"
         # for s in cmd:
         #     print "\t" + s
         # print "*******************************"
+        sout = subprocess.PIPE
+        serr = subprocess.STDOUT
+        fo = None
+        fe = None
         try:
-            p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                 stderr=subprocess.STDOUT, shell=is_shell)
+            # Open output file for write
+            if output:
+                fo = open(output, 'w')
+                sout = fo
+            if error and (error != output):
+                fe = open(error, 'w')
+                serr = fe
+            p = subprocess.Popen(cmd, stdout=sout,
+                                 stderr=serr, shell=is_shell)
             th = TimeoutThread(p.pid, timeout)
             th.start()
             (out_str, err_str) = p.communicate()
             if(not th.is_timed_out):
                 th.is_stop = True
             th.join(10)
+            if fo:
+                fo.close()
+                fo = None
+            if fe:
+                fe.close()
+                fe = None
             return (p.returncode, th.is_timed_out, out_str, err_str)
         except:
             print "***********PROCESS_UTIL TRACE*************"
             print (traceback.format_exc())
             print "******************************************"
+            if fo:
+                fo.close()
+            if fe:
+                fe.close()
             return (-10, 0, '', '')
 
     @staticmethod
