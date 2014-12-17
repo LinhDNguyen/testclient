@@ -146,6 +146,7 @@ class ControlConsole(xmlrpc.XMLRPC):
                         'fe': fe
                     }
                     self._async_procs.append(tmp)
+                    return_code = res
                 else:
                     raise Exception("Can not run command as async. Detail: \n%s" % str(proc))
             else:
