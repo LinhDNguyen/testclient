@@ -44,6 +44,35 @@ class TimeoutThread(threading.Thread):
 class ProcessUtil(object):
     """Subprocess utility class"""
     @staticmethod
+    def run_async_job(cmd, is_shell=False, output=None, error=None):
+        """Run command cmd, if duration larger than 60 secs, kill it"""
+        # Print cmd:
+        # print "***************CMD*************"
+        # for s in cmd:
+        #     print "\t" + s
+        # print "*******************************"
+        sout = subprocess.PIPE
+        serr = subprocess.STDOUT
+        fo = None
+        fe = None
+        try:
+            # Open output file for write
+            if output:
+                fo = open(output, 'w')
+                sout = fo
+            if error and (error != output):
+                fe = open(error, 'w')
+                serr = fe
+            p = subprocess.Popen(cmd, stdout=sout,
+                                 stderr=serr, shell=is_shell)
+
+            return (0, p, fo, fe,)
+        except:
+            print "***********PROCESS_UTIL TRACE*************"
+            print (traceback.format_exc())
+            print "******************************************"
+            return (-10, traceback.format_exc(), None, None,)
+    @staticmethod
     def run_job(cmd, timeout=60, is_shell=False, output=None, error=None):
         """Run command cmd, if duration larger than 60 secs, kill it"""
         # Print cmd:

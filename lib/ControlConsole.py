@@ -32,6 +32,7 @@ class ControlConsole(xmlrpc.XMLRPC):
         self._host = host
         self._info = info
         self._status = IDLE
+        self._async_procs = []
 
     def xmlrpc_ping(self, **kargs):
         """
@@ -44,6 +45,43 @@ class ControlConsole(xmlrpc.XMLRPC):
         Get current status of station
         '''
         return self._status
+    def xmlrpc_get_async_status(self, **kargs):
+        '''
+        Get status of all aysnc processes
+        '''
+        if len(self._async_procs) == 0:
+            return (True, '')
+        res = True
+        s = "Status of ASYNC processes:\n"
+        for procinfo in self._async_procs:
+            p = procinfo['proc']
+            if not p:
+                continue
+            fo = procinfo['fo']
+            fe = procinfo['fe']
+
+            p.poll()
+
+            s += " - PID: %d\n" % p.pid
+            if p.returncode is not None:
+                # Finished
+                s += " - STATUS: Finished\n"
+                s += " - RETURN: %d\n" % p.returncode
+                (out_str, err_str) = p.communicate()
+                if fo:
+                    fo.close()
+                else:
+                    s += " - OUTPUT: %s\n" % out_str
+                if fe:
+                    fe.close()
+                else:
+                    s += " - ERROR: %s\n" % str(err_str)
+            else:
+                # Un-finished
+                s += " - STATUS: Running\n"
+                res = False
+
+        return (res, s)
 
     def xmlrpc_run_cmd(self, info={}):
         """
@@ -99,7 +137,19 @@ class ControlConsole(xmlrpc.XMLRPC):
                 cmd.extend(command)
             else:
                 cmd.append(command)
-            (return_code, is_timeout, output_string, error_string) = ProcessUtil.run_job(cmd, timeout, is_shell=isshell, output=output, error=error)
+            if timeout == 0:
+                (res, proc, fo, fe) = ProcessUtil.run_async_job(cmd, is_shell=isshell, output=output, error=error)
+                if res == 0:
+                    tmp = {
+                        'proc': p,
+                        'fo': fo,
+                        'fe': fe
+                    }
+                    self._async_procs.append(tmp)
+                else:
+                    raise Exception("Can not run command as async. Detail: \n%s" % str(proc))
+            else:
+                (return_code, is_timeout, output_string, error_string) = ProcessUtil.run_job(cmd, timeout, is_shell=isshell, output=output, error=error)
 
             if active_dir:
                 # Change back to previous dir
