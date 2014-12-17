@@ -76,6 +76,7 @@ class ControlConsole(xmlrpc.XMLRPC):
                     fe.close()
                 else:
                     s += " - ERROR: %s\n" % str(err_str)
+                self._async_procs.remove(procinfo)
             else:
                 # Un-finished
                 s += " - STATUS: Running\n"
