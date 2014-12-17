@@ -141,7 +141,7 @@ class ControlConsole(xmlrpc.XMLRPC):
                 (res, proc, fo, fe) = ProcessUtil.run_async_job(cmd, is_shell=isshell, output=output, error=error)
                 if res == 0:
                     tmp = {
-                        'proc': p,
+                        'proc': proc,
                         'fo': fo,
                         'fe': fe
                     }
