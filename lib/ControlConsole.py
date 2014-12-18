@@ -52,8 +52,10 @@ class ControlConsole(xmlrpc.XMLRPC):
         if len(self._async_procs) == 0:
             return (True, '')
         res = True
-        s = "Status of ASYNC processes:\n"
-        for procinfo in self._async_procs:
+        s = "\nStatus of ASYNC processes:\n"
+
+        for i in range(len(self._async_procs), 0, -1):
+            procinfo = self._async_procs[i - 1]
             p = procinfo['proc']
             if not p:
                 continue
@@ -63,6 +65,7 @@ class ControlConsole(xmlrpc.XMLRPC):
             p.poll()
 
             s += " - PID: %d\n" % p.pid
+            s += " - CMD: %s\n" % '*'.join(procinfo['cmd'])
             if p.returncode is not None:
                 # Finished
                 s += " - STATUS: Finished\n"
@@ -76,7 +79,7 @@ class ControlConsole(xmlrpc.XMLRPC):
                     fe.close()
                 else:
                     s += " - ERROR: %s\n" % str(err_str)
-                self._async_procs.remove(procinfo)
+                del(self._async_procs[i - 1])
             else:
                 # Un-finished
                 s += " - STATUS: Running\n"
@@ -144,7 +147,8 @@ class ControlConsole(xmlrpc.XMLRPC):
                     tmp = {
                         'proc': proc,
                         'fo': fo,
-                        'fe': fe
+                        'fe': fe,
+                        'cmd': cmd,
                     }
                     self._async_procs.append(tmp)
                     return_code = res
