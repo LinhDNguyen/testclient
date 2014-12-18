@@ -87,6 +87,44 @@ class ControlConsole(xmlrpc.XMLRPC):
 
         return (res, s)
 
+    def xmlrpc_term_async(self):
+        if len(self._async_procs) == 0:
+            return (True, '')
+        res = True
+        s = "Terminate async processes:\n"
+        for i in range(len(self._async_procs), 0, -1):
+            procinfo = self._async_procs[i - 1]
+            p = procinfo['proc']
+            if not p:
+                continue
+            fo = procinfo['fo']
+            fe = procinfo['fe']
+
+            p.poll()
+
+            s += " - PID: %d\n" % p.pid
+            if p.returncode is not None:
+                # Finished
+                s += " - STATUS: Finished\n"
+                s += " - RETURN: %d\n" % p.returncode
+                (out_str, err_str) = p.communicate()
+                if fo:
+                    fo.close()
+                else:
+                    s += " - OUTPUT: %s\n" % out_str
+                if fe:
+                    fe.close()
+                else:
+                    s += " - ERROR: %s\n" % str(err_str)
+            else:
+                # Un-finished
+                s += " - STATUS: Running ==> WILL BE KILLED\n"
+                p.kill()
+
+            del(self._async_procs[i - 1])
+
+        return (res, s)
+
     def xmlrpc_run_cmd(self, info={}):
         """
         Run command on station PC
