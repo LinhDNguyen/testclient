@@ -171,7 +171,7 @@ class ControlConsole(xmlrpc.XMLRPC):
                 ]
                 if winver.major >= 6:
                     # Win 7 +
-                    cmd.append('/it')
+                    # cmd.append('/it')
                     s += "7 +\n"
                 else:
                     s += "XP -\n"
