@@ -21,6 +21,7 @@ ERR_BUSY = 2
 ERR_TIMEOUT = 3
 
 class ControlConsole(xmlrpc.XMLRPC):
+    __version__ = '0.2'
     """
     Console used to control station PC
     """
@@ -45,6 +46,57 @@ class ControlConsole(xmlrpc.XMLRPC):
         Get current status of station
         '''
         return self._status
+    def self.nowexit(self):
+        os._exit(1)
+    def xmlrpc_self_restart(self, **kargs):
+        '''
+        Self restart this program.
+        '''
+        # Detect the OS then create schedule task
+        import datetime
+        import platform
+        s = ''
+        try:
+            addtime = datetime.timedelta(seconds=10)
+            exptime = datetime.datetime.now() + addtime
+            tm = exptime.minute
+            th = exptime.hour
+            ts = exptime.second
+            if 'linux' in sys.platform:
+                # For linux
+                s += "Linux\n"
+                pass
+            else:
+                # For windows
+                s += "Windows "
+                winver = sys.getwindowsversion()
+                cmdstr = "python %s" % (os.path.abspath(__file__))
+
+                cmd = [
+                    "schtasks", "/create",
+                    "/tn", "ControlSelfUpgrade%d" % tm,
+                    "/tr", cmdstr,
+                    "/sc", "once",
+                    "/st", "%02d:%02d:%02d" % (th, tm, ts),
+                    "/ru", 'mqx_test',
+                    "/rp", 'Freescale3',
+                ]
+                if winver.major >= 6:
+                    # Win 7 +
+                    cmd.append('/it')
+                    s += "7 +\n"
+                else:
+                    s += "XP -\n"
+
+                (ret_code, is_timed_out, out_str, err_str) = ProcessUtil.run_job(cmd, is_shell=True)
+                s += "%d\n" % ret_code
+                t = threading.Timer(1, self.nowexit)
+                threading.Timer(1, self.nowexit).start()
+        except:
+            s += traceback.format_exc()
+            return (False, s,)
+
+        return (True, s,)
     def xmlrpc_get_async_status(self, **kargs):
         '''
         Get status of all aysnc processes
@@ -53,6 +105,7 @@ class ControlConsole(xmlrpc.XMLRPC):
             return (True, '')
         res = True
         s = "\nStatus of ASYNC processes:\n"
+        s += "Platform: %s\n" % (sys.platform)
 
         for i in range(len(self._async_procs), 0, -1):
             procinfo = self._async_procs[i - 1]
@@ -92,6 +145,7 @@ class ControlConsole(xmlrpc.XMLRPC):
             return (True, '')
         res = True
         s = "Terminate async processes:\n"
+        s += "Platform: %s\n" % (sys.platform)
         for i in range(len(self._async_procs), 0, -1):
             procinfo = self._async_procs[i - 1]
             p = procinfo['proc']
