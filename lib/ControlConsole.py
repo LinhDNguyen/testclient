@@ -23,6 +23,7 @@ ERR_TIMEOUT = 3
 
 class ControlConsole(xmlrpc.XMLRPC):
     __version__ = '0.3'
+    _default_schedule_task_name_ = 'ControlSelfUpgrade'
     """
     Console used to control station PC
     """
@@ -35,6 +36,15 @@ class ControlConsole(xmlrpc.XMLRPC):
         self._info = info
         self._status = IDLE
         self._async_procs = []
+
+        cmd = [
+            'schtasks',
+            '/delete',
+            '/f', '/tn',
+            ControlConsole._default_schedule_task_name_,
+        ]
+
+        (ret_code, is_timed_out, out_str, err_str) = ProcessUtil.run_job(cmd, is_shell=True)
 
     def xmlrpc_ping(self, **kargs):
         """
@@ -149,7 +159,7 @@ class ControlConsole(xmlrpc.XMLRPC):
                 s += "Windows "
                 winver = sys.getwindowsversion()
                 cmdstr = "python %s" % (os.path.abspath(__file__))
-                schname = 'ControlSelfUpgrade'
+                schname = ControlConsole._default_schedule_task_name_
 
                 cmd = [
                     'schtasks',
