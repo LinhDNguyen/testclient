@@ -46,22 +46,28 @@ class ControlConsole(xmlrpc.XMLRPC):
         Get current status of station
         '''
         return self._status
-    def self.nowexit(self):
+    def nowexit(self):
         os._exit(1)
-    def xmlrpc_self_restart(self, **kargs):
+    def xmlrpc_self_restart(self, info={}):
         '''
         Self restart this program.
         '''
         # Detect the OS then create schedule task
         import datetime
         import platform
+
+        uname = 'mqx_test'
+        passwd = 'Freescale3'
         s = ''
         try:
-            addtime = datetime.timedelta(seconds=10)
+            # addtime = datetime.timedelta(minutes=1)
+            addtime = datetime.timedelta(minutes=1, seconds=5)
             exptime = datetime.datetime.now() + addtime
             tm = exptime.minute
             th = exptime.hour
             ts = exptime.second
+            uname = info.get('uname', uname)
+            passwd = info.get('passwd', passwd)
             if 'linux' in sys.platform:
                 # For linux
                 s += "Linux\n"
@@ -71,15 +77,25 @@ class ControlConsole(xmlrpc.XMLRPC):
                 s += "Windows "
                 winver = sys.getwindowsversion()
                 cmdstr = "python %s" % (os.path.abspath(__file__))
+                schname = 'ControlSelfUpgrade'
+
+                cmd = [
+                    'schtasks',
+                    '/delete',
+                    '/f', '/tn',
+                    schname,
+                ]
+
+                (ret_code, is_timed_out, out_str, err_str) = ProcessUtil.run_job(cmd, is_shell=True)
 
                 cmd = [
                     "schtasks", "/create",
-                    "/tn", "ControlSelfUpgrade%d" % tm,
+                    "/tn", schname,
                     "/tr", cmdstr,
                     "/sc", "once",
                     "/st", "%02d:%02d:%02d" % (th, tm, ts),
-                    "/ru", 'mqx_test',
-                    "/rp", 'Freescale3',
+                    "/ru", uname,
+                    "/rp", passwd,
                 ]
                 if winver.major >= 6:
                     # Win 7 +
@@ -89,9 +105,13 @@ class ControlConsole(xmlrpc.XMLRPC):
                     s += "XP -\n"
 
                 (ret_code, is_timed_out, out_str, err_str) = ProcessUtil.run_job(cmd, is_shell=True)
-                s += "%d\n" % ret_code
-                t = threading.Timer(1, self.nowexit)
-                threading.Timer(1, self.nowexit).start()
+                s += "== Return: %d\n" % ret_code
+                if ret_code == 0:
+                    import threading
+                    t = threading.Timer(1, self.nowexit)
+                    threading.Timer(1, self.nowexit).start()
+                else:
+                    return (False, s,)
         except:
             s += traceback.format_exc()
             return (False, s,)
@@ -101,11 +121,12 @@ class ControlConsole(xmlrpc.XMLRPC):
         '''
         Get status of all aysnc processes
         '''
-        if len(self._async_procs) == 0:
-            return (True, '')
-        res = True
         s = "\nStatus of ASYNC processes:\n"
         s += "Platform: %s\n" % (sys.platform)
+        s += "Console version: %s\n" % ControlConsole.__version__
+        if len(self._async_procs) == 0:
+            return (True, s)
+        res = True
 
         for i in range(len(self._async_procs), 0, -1):
             procinfo = self._async_procs[i - 1]
