@@ -1,6 +1,7 @@
 __author__ = 'linh'
 import sys
 import os
+import re
 import traceback
 
 from twisted.web import xmlrpc
@@ -21,7 +22,7 @@ ERR_BUSY = 2
 ERR_TIMEOUT = 3
 
 class ControlConsole(xmlrpc.XMLRPC):
-    __version__ = '0.2'
+    __version__ = '0.3'
     """
     Console used to control station PC
     """
@@ -46,6 +47,77 @@ class ControlConsole(xmlrpc.XMLRPC):
         Get current status of station
         '''
         return self._status
+
+    def get_tasks(self, tname=''):
+        cmd = [
+            'WMIC', 'path',
+            'win32_process', 'get', 'Caption,Processid,Commandline',
+        ]
+        (ret_code, is_timed_out, out_str, err_str) = ProcessUtil.run_job(cmd, is_shell=True)
+        lines = out_str.splitlines()
+        res = []
+
+        for l in lines:
+            l = l.strip()
+            if not l:
+                continue
+            if (tname) and (not l.startswith(tname)):
+                continue
+
+
+            arr = re.split('\s\s+', l)
+            pid = -1
+            try:
+                pid = int(arr[-1])
+            except:
+                continue
+            tmp = [pid, arr[0].strip(), ' '.join([str(i.strip()) for i in arr[1:-1]])]
+            res.append(tmp)
+        return res
+
+    def xmlrpc_get_tasks(self, info={}):
+        '''
+        Get task list and its informations
+        '''
+        tname = info.get('name', '')
+        tasks = self.get_tasks(tname)
+        s = ''
+        for task in tasks:
+            s += "[%06d] - [%30s] - [%s]\n" % (task[0], task[1], task[2])
+        return (True, s,)
+
+    def xmlrpc_kill_task(self, info={}):
+        tname = info.get('name', '')
+        fpath = info.get('path', '')
+        fpath = fpath.replace(' ', '')
+        res = True
+        s = ''
+        if (not tname) or (not fpath):
+            return (False, s,)
+
+        tasks = self.get_tasks(tname)
+        for task in tasks:
+            pid = task[0]
+            name = task[1]
+            path = task[2]
+
+            # Find matches task
+            path = path.replace(' ', '')
+            if fpath.lower() not in path.lower():
+                continue
+
+            # Matched, kill
+            s += "[%d] - [%s] - [%s]\n" % (pid, name, path)
+            cmd = ['TASKKILL',
+                '/F',
+                '/T',
+                '/PID', '%d' % pid
+            ]
+            (ret_code, is_timed_out, out_str, err_str) = ProcessUtil.run_job(cmd, is_shell=True)
+            s += "== RET: %d\n" % ret_code
+            s += "== OUT: %s\n" % out_str
+        return (True, s, )
+
     def nowexit(self):
         os._exit(1)
     def xmlrpc_self_restart(self, info={}):
