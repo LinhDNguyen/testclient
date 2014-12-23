@@ -2,7 +2,7 @@ __author__ = 'Linh Nguyen'
 
 import sys
 
-from lib.SlaveConsole import SlaveConsole
+from lib.StationConsole import StationConsole
 from lib.Utility import Utility
 
 from twisted.internet import reactor
@@ -39,6 +39,6 @@ if __name__ == '__main__':
     if 'specific_config' in configs.keys():
         configs['specific_config'] = Utility.parse_config(configs['specific_config'])
 
-    r = SlaveConsole('localhost', 1000, configs)
+    r = StationConsole('localhost', 1000, configs)
     reactor.listenTCP(1000, server.Site(r))
     reactor.run()

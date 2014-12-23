@@ -14,7 +14,7 @@ from twisted.python import log
 
 from lib.Utility import Utility
 
-class SlaveConsole(xmlrpc.XMLRPC):
+class StationConsole(xmlrpc.XMLRPC):
     """
     Console used to control master PC
     """
